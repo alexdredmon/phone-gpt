@@ -1,9 +1,10 @@
-import os
-from fastapi import FastAPI
-import requests
-import json
-from pydantic import BaseModel
 import base64
+from fastapi import FastAPI
+import json
+import os
+from pydantic import BaseModel
+import re
+import requests
 
 
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
@@ -16,6 +17,7 @@ class ChatRequest(BaseModel):
         bytes('[]', 'utf-8')
     )
     key: str
+    phone: bool = False
 
 app = FastAPI()
 
@@ -29,6 +31,7 @@ def chat(chat: ChatRequest):
         ).decode('utf-8')
     )
     key = chat.key
+    phone = chat.phone
     if key != PHONE_GPT_KEY:
         return 'Unauthorized'
     
@@ -39,12 +42,15 @@ def chat(chat: ChatRequest):
         },
     ]
     
+    params = {
+        'model': 'gpt-3.5-turbo',
+        'messages': messages,
+    }
+    if phone:
+        params['max_tokens'] = 125
     request = requests.post(
         'https://api.openai.com/v1/chat/completions',
-        json={
-            'model': 'gpt-3.5-turbo',
-            'messages': messages,
-        },
+        json=params,
         headers={
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {OPENAI_API_KEY}',
@@ -54,6 +60,9 @@ def chat(chat: ChatRequest):
     response = json.loads(request.content)
 
     message = response['choices'][0]['message']['content'].strip()
+    if phone:
+        trunc_match = re.match(r'(.*)[\.!\?]', message)
+        message = trunc_match[0]
     history = history + [
         {
             'role': 'user',

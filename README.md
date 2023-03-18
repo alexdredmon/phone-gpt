@@ -20,4 +20,4 @@ And start:
 ./start.sh
 ```
 
-Wire up the corresponding Twilio Flow in Twilio Flow Studio, assign it to a number, and you're all set!
+Set up a Twilio Flow in Flow Studio using the JSON in `flow.json`, replacing `PHONT_GPT_API_KEY` with the key you set in your `env.sh` above.  Assign it to a phone number (i.e. update triggers for incoming calls and texts to point to this flow) and you'll be set to start texting/calling PhoneGPT.

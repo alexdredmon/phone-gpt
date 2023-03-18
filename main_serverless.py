@@ -1,19 +1,21 @@
-import os
-import requests
-import json
 import base64
+import json
+import re
+import requests
 
-
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-PHONE_GPT_KEY = os.getenv('PHONE_GPT_KEY')
 
 def chat(request):
     params = request.get_json(silent=True)
-    key = params['key']
-    if key != PHONE_GPT_KEY:
+    key = params.get('key')
+    if key != '':
         return 'Unauthorized'
     text = params['text']
     history = params.get('history') or 'W10='
+    phone = params.get('phone') or False
+    max_tokens = params.get('max_tokens') or 125
+    raw = params.get('raw') or False
+    if not raw:
+        text = text + " Please keep your response brief."
 
     history = json.loads(
         base64.b64decode(
@@ -28,21 +30,27 @@ def chat(request):
         },
     ]
     
+    params = {
+        'model': 'gpt-3.5-turbo',
+        'messages': messages,
+    }
+    if phone:
+        params['max_tokens'] = max_tokens
     request = requests.post(
         'https://api.openai.com/v1/chat/completions',
-        json={
-            'model': 'gpt-3.5-turbo',
-            'messages': messages,
-        },
+        json=params,
         headers={
             'Content-Type': 'application/json',
-            'Authorization': f'Bearer {OPENAI_API_KEY}',
+            'Authorization': f'Bearer ',
         },
     )
 
     response = json.loads(request.content)
 
     message = response['choices'][0]['message']['content'].strip()
+    if phone:
+        trunc_match = re.match(r'(.*)[\.!\?]', message)
+        message = trunc_match[0]
     history = history + [
         {
             'role': 'user',
