@@ -1,13 +1,14 @@
 import base64
 from fastapi import FastAPI
 import json
+import openai
 import os
 from pydantic import BaseModel
 import re
 import requests
+import time
 
 
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 PHONE_GPT_KEY = os.getenv('PHONE_GPT_KEY')
 
 
@@ -24,6 +25,7 @@ app = FastAPI()
 
 @app.post("/chat")
 def chat(chat: ChatRequest):
+    start_x = time.time()
     text = chat.text
     history = json.loads(
         base64.b64decode(
@@ -46,23 +48,26 @@ def chat(chat: ChatRequest):
         'model': 'gpt-3.5-turbo',
         'messages': messages,
     }
-    if phone:
-        params['max_tokens'] = 125
-    request = requests.post(
-        'https://api.openai.com/v1/chat/completions',
-        json=params,
-        headers={
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {OPENAI_API_KEY}',
-        },
-    )
 
-    response = json.loads(request.content)
+    streams = []
+    message = ""
+    for completion in openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=messages,
+        stream=True,
+    ):
+        content = completion['choices'][0]['delta'].get('content', '')
+        if content:
+            message += content
+        streams.append(completion)
+        elapsed = time.time() - start_x
+        if phone and elapsed > 4:
+            break
 
-    message = response['choices'][0]['message']['content'].strip()
     if phone:
-        trunc_match = re.match(r'(.*)[\.!\?]', message)
-        message = trunc_match[0]
+        trunc_match = re.search(r'(.*)[\.!\?]', message)
+        if trunc_match is not None:
+            message = trunc_match[0]
     history = history + [
         {
             'role': 'user',
@@ -75,11 +80,14 @@ def chat(chat: ChatRequest):
     ]
 
     return {
+        'elapsed': time.time() - start_x,
         'message': message,
+        'phone': phone,
         'history': base64.b64encode(
             bytes(
                 json.dumps(history),
                 'utf-8',
             )
-        ),
+        ).decode('utf-8'),
+        'streams': streams,
     }

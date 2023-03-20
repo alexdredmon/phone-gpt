@@ -1,10 +1,15 @@
 import base64
 import json
+import openai
 import re
 import requests
+import time
+
+openai.api_key = ''
 
 
 def chat(request):
+    start_x = time.time()
     params = request.get_json(silent=True)
     key = params.get('key')
     if key != '':
@@ -36,21 +41,26 @@ def chat(request):
     }
     if phone:
         params['max_tokens'] = max_tokens
-    request = requests.post(
-        'https://api.openai.com/v1/chat/completions',
-        json=params,
-        headers={
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer ',
-        },
-    )
+    streams = []
+    message = ""
+    for completion in openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=messages,
+        # max_tokens=125,
+        stream=True,
+    ):
+        content = completion['choices'][0]['delta'].get('content', '')
+        if content:
+            message += content
+        streams.append(completion)
+        elapsed = time.time() - start_x
+        if phone and elapsed > 4:
+            break
 
-    response = json.loads(request.content)
-
-    message = response['choices'][0]['message']['content'].strip()
     if phone:
-        trunc_match = re.match(r'(.*)[\.!\?]', message)
-        message = trunc_match[0]
+        trunc_match = re.search(r'(.*)[\.!\?]', message)
+        if trunc_match is not None:
+            message = trunc_match[0]
     history = history + [
         {
             'role': 'user',
@@ -63,11 +73,13 @@ def chat(request):
     ]
 
     return {
+        'elapsed': time.time() - start_x,
         'message': message,
+        'phone': phone,
         'history': base64.b64encode(
             bytes(
                 json.dumps(history),
                 'utf-8',
             )
-        ).decode('utf-8'),
+        ).encode('utf-8'),
     }
