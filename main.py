@@ -19,6 +19,7 @@ class ChatRequest(BaseModel):
     )
     key: str
     phone: bool = False
+    max_execution: int = 4
 
 app = FastAPI()
 
@@ -34,6 +35,8 @@ def chat(chat: ChatRequest):
     )
     key = chat.key
     phone = chat.phone
+    max_execution = chat.max_execution
+
     if key != PHONE_GPT_KEY:
         return 'Unauthorized'
     
@@ -61,7 +64,7 @@ def chat(chat: ChatRequest):
             message += content
         streams.append(completion)
         elapsed = time.time() - start_x
-        if phone and elapsed > 4:
+        if phone and elapsed > max_execution:
             break
 
     if phone:

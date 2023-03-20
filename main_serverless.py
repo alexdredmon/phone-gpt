@@ -17,7 +17,7 @@ def chat(request):
     text = params['text']
     history = params.get('history') or 'W10='
     phone = params.get('phone') or False
-    max_tokens = params.get('max_tokens') or 125
+    max_execution = params.get('max_execution') or 4
     raw = params.get('raw') or False
     if not raw:
         text = text + " Please keep your response brief."
@@ -39,14 +39,12 @@ def chat(request):
         'model': 'gpt-3.5-turbo',
         'messages': messages,
     }
-    if phone:
-        params['max_tokens'] = max_tokens
+
     streams = []
     message = ""
     for completion in openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=messages,
-        # max_tokens=125,
         stream=True,
     ):
         content = completion['choices'][0]['delta'].get('content', '')
@@ -54,7 +52,7 @@ def chat(request):
             message += content
         streams.append(completion)
         elapsed = time.time() - start_x
-        if phone and elapsed > 4:
+        if phone and elapsed > max_execution:
             break
 
     if phone:
@@ -76,10 +74,10 @@ def chat(request):
         'elapsed': time.time() - start_x,
         'message': message,
         'phone': phone,
-        'history': base64.b64encode(
+        'history': str(base64.b64encode(
             bytes(
                 json.dumps(history),
                 'utf-8',
             )
-        ).encode('utf-8'),
+        ).decode('ascii')),
     }
