@@ -1,0 +1,460 @@
+{
+  "description": "A New Flow",
+  "states": [{
+    "name": "Trigger",
+    "type": "trigger",
+    "transitions": [{
+      "next": "setapikeysms",
+      "event": "incomingMessage"
+    }, {
+      "next": "setapikeyaudio",
+      "event": "incomingCall"
+    }, {
+      "event": "incomingConversationMessage"
+    }, {
+      "event": "incomingRequest"
+    }, {
+      "event": "incomingParent"
+    }],
+    "properties": {
+      "offset": {
+        "x": 0,
+        "y": -750
+      }
+    }
+  }, {
+    "name": "httpchatgptsms",
+    "type": "make-http-request",
+    "transitions": [{
+      "next": "setresponsesms",
+      "event": "success"
+    }, {
+      "event": "failed"
+    }],
+    "properties": {
+      "offset": {
+        "x": -360,
+        "y": 300
+      },
+      "method": "POST",
+      "content_type": "application/json;charset=utf-8",
+      "body": "{\n\"key\": \"{{flow.variables.key}}\",\n\"text\": \" {{trigger.message.Body}}\"\n}",
+      "url": "https://sms-gpt"
+    }
+  }, {
+    "name": "repeatgathersmsinput",
+    "type": "send-and-wait-for-reply",
+    "transitions": [{
+      "next": "split_1",
+      "event": "incomingMessage"
+    }, {
+      "next": "goodbyemessage",
+      "event": "timeout"
+    }, {
+      "event": "deliveryFailure"
+    }],
+    "properties": {
+      "offset": {
+        "x": -360,
+        "y": 860
+      },
+      "service": "{{trigger.message.InstanceSid}}",
+      "channel": "{{trigger.message.ChannelSid}}",
+      "from": "{{flow.channel.address}}",
+      "body": "{{flow.variables.lastresponse}}",
+      "timeout": "3600"
+    }
+  }, {
+    "name": "http_2",
+    "type": "make-http-request",
+    "transitions": [{
+      "next": "set_variables_3",
+      "event": "success"
+    }, {
+      "event": "failed"
+    }],
+    "properties": {
+      "offset": {
+        "x": -1080,
+        "y": 1620
+      },
+      "method": "POST",
+      "content_type": "application/json;charset=utf-8",
+      "body": "{\n\"key\": \"{{flow.variables.key}}\",\n\"text\": \"{{widgets.repeatgathersmsinput.inbound.Body}}\",\n\"history\": \" {{flow.variables.history}} \"\n}",
+      "url": "https://sms-gpt"
+    }
+  }, {
+    "name": "setresponsesms",
+    "type": "set-variables",
+    "transitions": [{
+      "next": "repeatgathersmsinput",
+      "event": "next"
+    }],
+    "properties": {
+      "variables": [{
+        "value": "{{widgets.httpchatgptsms.parsed.message}}",
+        "key": "lastresponse"
+      }, {
+        "value": "{{widgets.httpchatgptsms.parsed.history}}",
+        "key": "history"
+      }],
+      "offset": {
+        "x": -360,
+        "y": 560
+      }
+    }
+  }, {
+    "name": "set_variables_3",
+    "type": "set-variables",
+    "transitions": [{
+      "next": "repeatgathersmsinput",
+      "event": "next"
+    }],
+    "properties": {
+      "variables": [{
+        "value": "{{widgets.http_2.parsed.message}}",
+        "key": "lastresponse"
+      }, {
+        "value": "{{widgets.http_2.parsed.history}}",
+        "key": "history"
+      }],
+      "offset": {
+        "x": 0,
+        "y": 1640
+      }
+    }
+  }, {
+    "name": "split_1",
+    "type": "split-based-on",
+    "transitions": [{
+      "next": "http_2",
+      "event": "noMatch"
+    }, {
+      "next": "goodbyemessage",
+      "event": "match",
+      "conditions": [{
+        "friendly_name": "If value equal_to q",
+        "arguments": [
+          "{{widgets.repeatgathersmsinput.inbound.Body}}"
+        ],
+        "type": "equal_to",
+        "value": "q"
+      }]
+    }, {
+      "next": "goodbyemessage",
+      "event": "match",
+      "conditions": [{
+        "friendly_name": "If value equal_to Q",
+        "arguments": [
+          "{{widgets.repeatgathersmsinput.inbound.Body}}"
+        ],
+        "type": "equal_to",
+        "value": "Q"
+      }]
+    }, {
+      "next": "goodbyemessage",
+      "event": "match",
+      "conditions": [{
+        "friendly_name": "If value equal_to thx",
+        "arguments": [
+          "{{widgets.repeatgathersmsinput.inbound.Body}}"
+        ],
+        "type": "equal_to",
+        "value": "thanks"
+      }]
+    }, {
+      "next": "goodbyemessage",
+      "event": "match",
+      "conditions": [{
+        "friendly_name": "If value equal_to Thanks",
+        "arguments": [
+          "{{widgets.repeatgathersmsinput.inbound.Body}}"
+        ],
+        "type": "equal_to",
+        "value": "Thanks"
+      }]
+    }, {
+      "next": "goodbyemessage",
+      "event": "match",
+      "conditions": [{
+        "friendly_name": "If value equal_to thanks!",
+        "arguments": [
+          "{{widgets.repeatgathersmsinput.inbound.Body}}"
+        ],
+        "type": "equal_to",
+        "value": "thanks!"
+      }]
+    }, {
+      "next": "goodbyemessage",
+      "event": "match",
+      "conditions": [{
+        "friendly_name": "If value equal_to Thanks!",
+        "arguments": [
+          "{{widgets.repeatgathersmsinput.inbound.Body}}"
+        ],
+        "type": "equal_to",
+        "value": "Thanks!"
+      }]
+    }, {
+      "next": "goodbyemessage",
+      "event": "match",
+      "conditions": [{
+        "friendly_name": "If value equal_to thx",
+        "arguments": [
+          "{{widgets.repeatgathersmsinput.inbound.Body}}"
+        ],
+        "type": "equal_to",
+        "value": "thx"
+      }]
+    }],
+    "properties": {
+      "input": "{{widgets.repeatgathersmsinput.inbound.Body}}",
+      "offset": {
+        "x": -1000,
+        "y": 1120
+      }
+    }
+  }, {
+    "name": "goodbyemessage",
+    "type": "send-message",
+    "transitions": [{
+      "event": "sent"
+    }, {
+      "event": "failed"
+    }],
+    "properties": {
+      "offset": {
+        "x": -320,
+        "y": 1910
+      },
+      "service": "{{trigger.message.InstanceSid}}",
+      "channel": "{{trigger.message.ChannelSid}}",
+      "from": "{{flow.channel.address}}",
+      "to": "{{contact.channel.address}}",
+      "body": "It's been a pleasure chatting today :)"
+    }
+  }, {
+    "name": "gatherspeechinput",
+    "type": "gather-input-on-call",
+    "transitions": [{
+      "event": "keypress"
+    }, {
+      "next": "httpgptaudio",
+      "event": "speech"
+    }, {
+      "event": "timeout"
+    }],
+    "properties": {
+      "voice": "Polly.Matthew",
+      "speech_timeout": "auto",
+      "offset": {
+        "x": 120,
+        "y": -40
+      },
+      "loop": 1,
+      "finish_on_key": "#",
+      "say": "How can I help?",
+      "language": "en-US",
+      "stop_gather": true,
+      "gather_language": "en",
+      "profanity_filter": "true",
+      "timeout": 30
+    }
+  }, {
+    "name": "httpgptaudio",
+    "type": "make-http-request",
+    "transitions": [{
+      "next": "setresponseaudio",
+      "event": "success"
+    }, {
+      "event": "failed"
+    }],
+    "properties": {
+      "offset": {
+        "x": 110,
+        "y": 300
+      },
+      "method": "POST",
+      "content_type": "application/json;charset=utf-8",
+      "body": "{\n\"phone\": false,\n\"key\": \"{{flow.variables.key}}\",\n\"text\": \"{{widgets.gatherspeechinput.SpeechResult}} \"\n}",
+      "url": "https://sms-gpt"
+    }
+  }, {
+    "name": "setresponseaudio",
+    "type": "set-variables",
+    "transitions": [{
+      "next": "repeatgatherspeechinput",
+      "event": "next"
+    }],
+    "properties": {
+      "variables": [{
+        "value": "{{widgets.httpgptaudio.parsed.message}}",
+        "key": "lastresponse"
+      }, {
+        "value": "{{widgets.httpgptaudio.parsed.history}}",
+        "key": "history"
+      }],
+      "offset": {
+        "x": 130,
+        "y": 550
+      }
+    }
+  }, {
+    "name": "repeatgatherspeechinput",
+    "type": "gather-input-on-call",
+    "transitions": [{
+      "event": "keypress"
+    }, {
+      "next": "split_2",
+      "event": "speech"
+    }, {
+      "event": "timeout"
+    }],
+    "properties": {
+      "voice": "Polly.Matthew",
+      "speech_timeout": "auto",
+      "offset": {
+        "x": 130,
+        "y": 820
+      },
+      "loop": 1,
+      "finish_on_key": "#",
+      "say": "{{flow.variables.lastresponse}}",
+      "language": "en-US",
+      "stop_gather": true,
+      "gather_language": "en-US",
+      "profanity_filter": "false",
+      "timeout": 30
+    }
+  }, {
+    "name": "split_2",
+    "type": "split-based-on",
+    "transitions": [{
+      "next": "http_2_2",
+      "event": "noMatch"
+    }],
+    "properties": {
+      "input": "{{widgets.repeatgatherspeechinput.SpeechResult}}",
+      "offset": {
+        "x": 270,
+        "y": 1110
+      }
+    }
+  }, {
+    "name": "http_2_2",
+    "type": "make-http-request",
+    "transitions": [{
+      "next": "Copy_of_set_variables_3",
+      "event": "success"
+    }, {
+      "event": "failed"
+    }],
+    "properties": {
+      "offset": {
+        "x": 310,
+        "y": 1370
+      },
+      "method": "POST",
+      "content_type": "application/json;charset=utf-8",
+      "body": "{\n\"phone\": false,\n\"key\": \"{{flow.variables.key}}\",\n\"text\": \"{{widgets.repeatgatherspeechinput.SpeechResult}} \",\n\"history\": \" {{flow.variables.history}} \"\n}",
+      "url": "https://sms-gpt"
+    }
+  }, {
+    "name": "Copy_of_set_variables_3",
+    "type": "set-variables",
+    "transitions": [{
+      "next": "repeatgatherspeechinput",
+      "event": "next"
+    }],
+    "properties": {
+      "variables": [{
+        "value": "{{widgets.http_2_2.parsed.message}}",
+        "key": "lastresponse"
+      }, {
+        "value": "{{widgets.http_2_2.parsed.history}}",
+        "key": "history"
+      }],
+      "offset": {
+        "x": 540,
+        "y": 1640
+      }
+    }
+  }, {
+    "name": "setapikeyaudio",
+    "type": "set-variables",
+    "transitions": [{
+      "next": "say_play_1",
+      "event": "next"
+    }],
+    "properties": {
+      "variables": [{
+        "value": "PHONE_GPT_API_KEY",
+        "key": "key"
+      }],
+      "offset": {
+        "x": 100,
+        "y": -360
+      }
+    }
+  }, {
+    "name": "setapikeysms",
+    "type": "set-variables",
+    "transitions": [{
+      "next": "httpchatgptsms",
+      "event": "next"
+    }],
+    "properties": {
+      "variables": [{
+        "value": "PHONE_GPT_API_KEY",
+        "key": "key"
+      }],
+      "offset": {
+        "x": -360,
+        "y": -360
+      }
+    }
+  }, {
+    "name": "call_recording_1",
+    "type": "record-call",
+    "transitions": [{
+      "next": "gatherspeechinput",
+      "event": "success"
+    }, {
+      "next": "gatherspeechinput",
+      "event": "failed"
+    }],
+    "properties": {
+      "record_call": true,
+      "offset": {
+        "x": 480,
+        "y": -250
+      },
+      "trim": "do-not-trim",
+      "recording_status_callback": "",
+      "recording_status_callback_method": "POST",
+      "recording_status_callback_events": "completed",
+      "recording_channels": "dual"
+    }
+  }, {
+    "name": "say_play_1",
+    "type": "say-play",
+    "transitions": [{
+      "next": "call_recording_1",
+      "event": "audioComplete"
+    }],
+    "properties": {
+      "voice": "Polly.Matthew",
+      "offset": {
+        "x": 490,
+        "y": -450
+      },
+      "loop": 1,
+      "say": "Hello.",
+      "language": "en-US"
+    }
+  }],
+  "initial_state": "Trigger",
+  "flags": {
+    "allow_concurrent_calls": true
+  }
+}
