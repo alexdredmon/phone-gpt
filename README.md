@@ -22,4 +22,4 @@ And start:
 
 Set up a Twilio Flow in Flow Studio using the JSON in `flow.json`, replacing `PHONT_GPT_API_KEY` with the key you set in your `env.sh` above.  Assign it to a phone number (i.e. update triggers for incoming calls and texts to point to this flow) and you'll be set to start texting/calling PhoneGPT.
 
-Replace "https://sms-gpt" with the URL to your webhook (i.e. a serverless function which runs `main_serverless.py`)
+Replace "https://sms-gpt" with the URL to your webhook (i.e. a serverless function which runs `main_serverless.py` or a web server running `main.py`)
